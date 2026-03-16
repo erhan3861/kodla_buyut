@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modül 7 — Kodla ve Büyüt: AI Destekli Tarım Algoritmaları</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Manrope',sans-serif}
+body{background:#13151a;display:flex;flex-direction:column;color:#e2e8f0}
+
+.header{background:linear-gradient(90deg,#0f1117,#1a1d2e,#0f1117);border-bottom:2px solid rgba(168,85,247,0.3);padding:8px 20px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.badge{background:rgba(168,85,247,0.2);border:1px solid rgba(168,85,247,0.5);color:#c084fc;font-size:10px;font-weight:800;letter-spacing:2px;padding:4px 10px;border-radius:3px}
+.header h1{font-size:15px;font-weight:800;color:#f0e6ff;letter-spacing:0.3px}
+.run-btn{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;font-family:'Manrope',sans-serif;font-size:13px;font-weight:800;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;box-shadow:0 4px 12px rgba(124,58,237,0.4)}
+.run-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(124,58,237,0.5)}
+.run-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+.main{flex:1;display:grid;grid-template-columns:200px 1fr 280px;gap:0;overflow:hidden;min-height:0}
+
+/* LEFT: Block palette */
+.palette{background:#0f1117;border-right:1px solid rgba(168,85,247,0.15);overflow-y:auto;padding:10px}
+.palette-section{margin-bottom:14px}
+.ps-title{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(192,132,252,0.5);padding:4px 0;margin-bottom:6px;border-bottom:1px solid rgba(168,85,247,0.1)}
+
+.block{
+  border-radius:8px;padding:8px 10px;margin-bottom:5px;
+  cursor:grab;user-select:none;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:500;
+  border-left:3px solid transparent;
+  transition:all 0.15s;
+  display:flex;align-items:center;gap:7px;
+}
+.block:hover{transform:translateX(2px);opacity:0.9}
+.block:active{cursor:grabbing}
+.block.b-if{background:rgba(234,179,8,0.12);border-left-color:#eab308;color:#fef08a}
+.block.b-action{background:rgba(34,197,94,0.12);border-left-color:#22c55e;color:#86efac}
+.block.b-sensor{background:rgba(59,130,246,0.12);border-left-color:#3b82f6;color:#93c5fd}
+.block.b-loop{background:rgba(168,85,247,0.12);border-left-color:#a855f7;color:#d8b4fe}
+.block.b-ai{background:rgba(236,72,153,0.12);border-left-color:#ec4899;color:#f9a8d4}
+.block-icon{font-size:14px;flex-shrink:0}
+
+/* CENTER: Editor */
+.editor{background:#1a1d2e;display:flex;flex-direction:column;overflow:hidden}
+.editor-toolbar{background:#13151a;border-bottom:1px solid rgba(168,85,247,0.15);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.et-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(192,132,252,0.6)}
+.et-file{background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);color:#c084fc;padding:4px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:background 0.2s}
+.et-file.active{background:rgba(168,85,247,0.25);border-color:#a855f7}
+.et-clear{margin-left:auto;background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.3);color:#fca5a5;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace}
+
+.canvas-area{flex:1;overflow:auto;padding:12px;position:relative}
+
+.drop-zone{
+  min-height:100%;
+  border:2px dashed rgba(168,85,247,0.2);
+  border-radius:12px;
+  padding:12px;
+  display:flex;flex-direction:column;gap:8px;
+  transition:border-color 0.2s,background 0.2s;
+}
+.drop-zone.dragover{border-color:#a855f7;background:rgba(168,85,247,0.05)}
+
+.placed-block{
+  border-radius:8px;padding:10px 14px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  display:flex;align-items:center;gap:10px;
+  position:relative;cursor:pointer;
+  border-left:4px solid transparent;
+  animation:blockIn 0.2s ease;
+}
+@keyframes blockIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.placed-block:hover .delete-btn{opacity:1}
+.delete-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,100,100,0.15);border:none;color:#fca5a5;width:20px;height:20px;border-radius:4px;cursor:pointer;font-size:10px;opacity:0;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center}
+.block-indent{margin-left:20px}
+
+.drop-hint{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;gap:10px;opacity:0.4;pointer-events:none}
+.hint-icon{font-size:40px}
+.hint-text{font-size:13px;font-family:'JetBrains Mono',monospace;line-height:1.6}
+
+/* RIGHT: Output console */
+.output-panel{background:#0f1117;border-left:1px solid rgba(168,85,247,0.15);display:flex;flex-direction:column;overflow:hidden}
+.op-header{padding:10px 14px;background:#13151a;border-bottom:1px solid rgba(168,85,247,0.15);display:flex;align-items:center;justify-content:space-between}
+.op-title{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:rgba(192,132,252,0.7);letter-spacing:1px}
+.op-status{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e}
+
+.console{flex:1;overflow-y:auto;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8}
+.cline{padding:2px 0;animation:fadeIn 0.2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.c-info{color:#93c5fd}
+.c-success{color:#86efac}
+.c-warn{color:#fef08a}
+.c-error{color:#fca5a5}
+.c-ai{color:#f9a8d4}
+.c-prompt{color:rgba(192,132,252,0.5)}
+.c-result{color:#e2e8f0;background:rgba(168,85,247,0.08);border-radius:4px;padding:2px 6px;margin:2px 0;display:block}
+
+.score-box{padding:10px 14px;background:rgba(168,85,247,0.08);border-top:1px solid rgba(168,85,247,0.15)}
+.score-label{font-size:9px;font-weight:800;letter-spacing:2px;color:rgba(192,132,252,0.5);text-transform:uppercase;margin-bottom:4px}
+.score-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#c084fc}
+
+.progress-check{display:flex;flex-direction:column;gap:4px;padding:10px 14px;border-top:1px solid rgba(168,85,247,0.1)}
+.check-item{display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(226,232,240,0.6)}
+.check-icon{font-size:12px}
+.check-done{color:#86efac;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="badge">MODÜL 7</span>
+    <h1>⚙️ Kodla ve Büyüt: Tarım Algoritması Yaz</h1>
+  </div>
+  <button class="run-btn" id="runBtn" onclick="runCode()">▶ Algoritmayı Çalıştır</button>
+</div>
+
+<div class="main">
+  <!-- PALETTE -->
+  <div class="palette">
+    <div class="palette-section">
+      <div class="ps-title">🔵 Sensör Blokları</div>
+      <div class="block b-sensor" draggable="true" data-type="sensor" data-code="oku_nem()" data-label="oku_nem()"><span class="block-icon">💧</span>oku_nem()</div>
+      <div class="block b-sensor" draggable="true" data-type="sensor" data-code="oku_sicaklik()" data-label="oku_sicaklik()"><span class="block-icon">🌡️</span>oku_sicaklik()</div>
+      <div class="block b-sensor" draggable="true" data-type="sensor" data-code="oku_ph()" data-label="oku_ph()"><span class="block-icon">⚗️</span>oku_ph()</div>
+      <div class="block b-sensor" draggable="true" data-type="sensor" data-code="hava_tahmini()" data-label="hava_tahmini()"><span class="block-icon">☁️</span>hava_tahmini()</div>
+    </div>
+    <div class="palette-section">
+      <div class="ps-title">🟡 Koşul Blokları</div>
+      <div class="block b-if" draggable="true" data-type="if" data-code="eğer (nem < 40):" data-label="eğer nem < 40:"><span class="block-icon">❓</span>eğer nem &lt; 40</div>
+      <div class="block b-if" draggable="true" data-type="if" data-code="eğer (sıcaklık > 35):" data-label="eğer sıcaklık > 35:"><span class="block-icon">🔥</span>eğer sıcaklık &gt;35</div>
+      <div class="block b-if" draggable="true" data-type="if" data-code="eğer (ph < 6.0):" data-label="eğer pH &lt; 6.0:"><span class="block-icon">⚗️</span>eğer pH &lt; 6.0</div>
+      <div class="block b-if" draggable="true" data-type="if" data-code="eğer (yağmur_var):" data-label="eğer yağmur var:"><span class="block-icon">🌧️</span>eğer yağmur var</div>
+    </div>
+    <div class="palette-section">
+      <div class="ps-title">🟢 Eylem Blokları</div>
+      <div class="block b-action" draggable="true" data-type="action" data-code="    sulama_yap(20)" data-label="  sulama_yap(20L)"><span class="block-icon">🚿</span>sulama_yap(20L)</div>
+      <div class="block b-action" draggable="true" data-type="action" data-code="    sulama_durdur()" data-label="  sulama_durdur()"><span class="block-icon">⛔</span>sulama_durdur()</div>
+      <div class="block b-action" draggable="true" data-type="action" data-code="    gubre_ver(10)" data-label="  gubre_ver(10kg)"><span class="block-icon">⚡</span>gubre_ver(10kg)</div>
+      <div class="block b-action" draggable="true" data-type="action" data-code="    uyari_gonder()" data-label="  uyarı_gönder()"><span class="block-icon">📱</span>uyarı_gönder()</div>
+      <div class="block b-action" draggable="true" data-type="action" data-code="    kireç_ver(5)" data-label="  kireç_ver(5kg)"><span class="block-icon">🪨</span>kireç_ver(5kg)</div>
+    </div>
+    <div class="palette-section">
+      <div class="ps-title">🔴 AI Blokları</div>
+      <div class="block b-ai" draggable="true" data-type="ai" data-code="ai_hastalik_tara()" data-label="ai_hastalik_tara()"><span class="block-icon">🤖</span>ai_hastalik_tara()</div>
+      <div class="block b-ai" draggable="true" data-type="ai" data-code="ai_verim_tahmin()" data-label="ai_verim_tahmin()"><span class="block-icon">📊</span>ai_verim_tahmin()</div>
+    </div>
+    <div class="palette-section">
+      <div class="ps-title">🟣 Döngü</div>
+      <div class="block b-loop" draggable="true" data-type="loop" data-code="her_sabah_çalış():" data-label="her_sabah_çalış():"><span class="block-icon">🔁</span>her_sabah_çalış():</div>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor">
+    <div class="editor-toolbar">
+      <span class="et-label">📁</span>
+      <span class="et-file active">tarla_kontrol.agri</span>
+      <button class="et-clear" onclick="clearAll()">🗑 Temizle</button>
+    </div>
+    <div class="canvas-area">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-hint" id="dropHint">
+          <div class="hint-icon">⬅️</div>
+          <div class="hint-text">Sol panelden blokları<br>buraya sürükle!<br><br># Tarım algoritman<br># burada oluşur</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-panel">
+    <div class="op-header">
+      <span class="op-title">KONSOL ÇIKTISI</span>
+      <div class="op-status" id="opStatus"></div>
+    </div>
+    <div class="console" id="console">
+      <div class="cline c-prompt">// Algoritmayı çalıştırmak için ▶ tıkla</div>
+      <div class="cline c-prompt">// Hazır bekliyorum...</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">ALGORİTMA PUANI</div>
+      <div class="score-val" id="algoScore">—</div>
+    </div>
+    <div class="progress-check">
+      <div class="check-item" id="ck1"><span class="check-icon">⬜</span>Sensör bloğu ekle</div>
+      <div class="check-item" id="ck2"><span class="check-icon">⬜</span>Koşul bloğu ekle</div>
+      <div class="check-item" id="ck3"><span class="check-icon">⬜</span>Eylem bloğu ekle</div>
+      <div class="check-item" id="ck4"><span class="check-icon">⬜</span>AI bloğu ekle</div>
+      <div class="check-item" id="ck5"><span class="check-icon">⬜</span>Algoritmayı çalıştır</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const hint = document.getElementById('dropHint');
+let blocks = [];
+let score = 0;
+
+// Drag from palette
+document.querySelectorAll('.block[draggable]').forEach(b => {
+  b.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      type: b.dataset.type, code: b.dataset.code, label: b.dataset.label,
+      colorClass: b.classList[1]
+    }));
+  });
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    addBlock(data);
+  } catch(err){}
+});
+
+function addBlock(data) {
+  hint.style.display='none';
+  blocks.push(data);
+  const div = document.createElement('div');
+  const indent = data.type==='action'||data.code.startsWith('    ');
+  div.className = `placed-block ${data.colorClass||'b-sensor'} ${indent?'block-indent':''}`;
+  const icons = {sensor:'💾',if:'❓',action:'⚡',loop:'🔁',ai:'🤖'};
+  div.innerHTML = `<span class="block-icon">${icons[data.type]||'📦'}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${data.label}</span>
+    <button class="delete-btn" onclick="removeBlock(this)">✕</button>`;
+  dropZone.appendChild(div);
+  updateChecks();
+  // Small score for adding
+  score = Math.min(100, score+5);
+}
+
+function removeBlock(btn) {
+  const div = btn.parentElement;
+  const idx = Array.from(dropZone.children).indexOf(div) - 1;
+  if(idx>=0) blocks.splice(idx,1);
+  div.remove();
+  if(dropZone.children.length<=1) hint.style.display='';
+  updateChecks();
+}
+
+function clearAll(){
+  blocks=[];
+  Array.from(dropZone.querySelectorAll('.placed-block')).forEach(b=>b.remove());
+  hint.style.display='';
+  score=0;
+  document.getElementById('algoScore').textContent='—';
+  updateChecks();
+  addConsole('// Temizlendi. Yeniden başla!','c-warn');
+}
+
+function updateChecks(){
+  const hasSensor=blocks.some(b=>b.type==='sensor');
+  const hasIf=blocks.some(b=>b.type==='if');
+  const hasAction=blocks.some(b=>b.type==='action');
+  const hasAi=blocks.some(b=>b.type==='ai');
+  setCheck('ck1',hasSensor);
+  setCheck('ck2',hasIf);
+  setCheck('ck3',hasAction);
+  setCheck('ck4',hasAi);
+}
+function setCheck(id,done){
+  const el=document.getElementById(id);
+  el.children[0].textContent=done?'✅':'⬜';
+  el.className=`check-item ${done?'check-done':''}`;
+}
+
+function addConsole(text, cls='c-info'){
+  const con=document.getElementById('console');
+  const div=document.createElement('div');
+  div.className=`cline ${cls}`;
+  div.textContent=text;
+  con.appendChild(div);
+  con.scrollTop=con.scrollHeight;
+}
+
+async function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function runCode(){
+  if(blocks.length===0){addConsole('❌ Önce blok ekle!','c-error');return;}
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  const con=document.getElementById('console');
+  con.innerHTML='';
+  setCheck('ck5',false);
+
+  // Simulated sensor values
+  const nem=25+Math.random()*50;
+  const temp=15+Math.random()*25;
+  const ph=5.5+Math.random()*2;
+  const rain=Math.random()>0.6;
+
+  addConsole('> tarla_kontrol.agri çalıştırılıyor...','c-prompt'); await sleep(300);
+  addConsole('> Sistem başlatılıyor...','c-info'); await sleep(200);
+
+  let algoScore=0;
+  let hasSensor=false, hasIf=false, hasAction=false, hasAi=false;
+
+  for(const b of blocks){
+    await sleep(350);
+    if(b.type==='sensor'){
+      hasSensor=true;
+      if(b.code.includes('nem')){addConsole(`  📡 nem sensörü → %${nem.toFixed(1)}`,'c-info');algoScore+=10;}
+      else if(b.code.includes('sicaklik')){addConsole(`  📡 sıcaklık sensörü → ${temp.toFixed(1)}°C`,'c-info');algoScore+=10;}
+      else if(b.code.includes('ph')){addConsole(`  📡 pH sensörü → ${ph.toFixed(1)}`,'c-info');algoScore+=10;}
+      else if(b.code.includes('hava')){addConsole(`  📡 hava tahmini → yağış: ${rain?'VAR':'YOK'}`,'c-info');algoScore+=10;}
+    }else if(b.type==='if'){
+      hasIf=true;
+      let cond=false;
+      if(b.code.includes('nem < 40')) cond=nem<40;
+      else if(b.code.includes('sicaklik > 35')||b.code.includes('sıcaklık > 35')) cond=temp>35;
+      else if(b.code.includes('ph < 6')) cond=ph<6;
+      else if(b.code.includes('yağmur')) cond=rain;
+      addConsole(`  ❓ ${b.label} → ${cond?'DOĞRU ✓':'YANLIŞ ✗'}`,cond?'c-success':'c-warn');
+      algoScore+=15;
+    }else if(b.type==='action'){
+      hasAction=true;
+      if(b.code.includes('sulama_yap')&&nem<40){addConsole('  🚿 sulama_yap(20L) → Çalıştırıldı!','c-success');algoScore+=20;}
+      else if(b.code.includes('sulama_durdur')&&nem>=40){addConsole('  ⛔ sulama_durdur() → Su korundu!','c-success');algoScore+=15;}
+      else if(b.code.includes('gubre')){addConsole('  ⚡ gubre_ver(10kg) → Gübre verildi!','c-success');algoScore+=15;}
+      else if(b.code.includes('uyari')){addConsole('  📱 uyarı_gönder() → SMS gönderildi!','c-success');algoScore+=10;}
+      else if(b.code.includes('kireç')&&ph<6){addConsole('  🪨 kireç_ver(5kg) → pH düzeltiliyor!','c-success');algoScore+=20;}
+      else{addConsole(`  ⚡ ${b.label} → Çalıştırıldı`,'c-info');algoScore+=5;}
+    }else if(b.type==='loop'){
+      addConsole('  🔁 her_sabah_çalış() → Zamanlayıcı aktif','c-ai');algoScore+=15;
+    }else if(b.type==='ai'){
+      hasAi=true;
+      await sleep(200);
+      if(b.code.includes('hastalik')){addConsole('  🤖 AI model yükleniyor...','c-ai');await sleep(400);addConsole('  🤖 Hastalık taraması: ✅ Temiz!','c-success');algoScore+=25;}
+      else{addConsole('  📊 AI verim tahmini: ~4.2 ton/ha','c-ai');algoScore+=20;}
+    }
+  }
+  await sleep(300);
+
+  // Bonus for good algorithm design
+  if(hasSensor&&hasIf) algoScore+=10;
+  if(hasIf&&hasAction) algoScore+=10;
+  if(hasAi) algoScore+=10;
+
+  algoScore=Math.min(100,algoScore);
+  score=algoScore;
+
+  addConsole('','');
+  addConsole(`✅ Algoritma tamamlandı! Puan: ${algoScore}/100`,algoScore>=80?'c-success':algoScore>=50?'c-warn':'c-error');
+  if(algoScore>=80) addConsole('🏆 Harika algoritma! AI destekli tam otomasyon!','c-success');
+  else if(algoScore>=50) addConsole('👍 İyi! Daha fazla blok ekleyerek geliştir.','c-warn');
+  else addConsole('💡 Sensör + Koşul + Eylem + AI bloklarını birleştir!','c-ai');
+
+  document.getElementById('algoScore').textContent=algoScore+'/100';
+  setCheck('ck1',hasSensor); setCheck('ck2',hasIf); setCheck('ck3',hasAction); setCheck('ck4',hasAi); setCheck('ck5',true);
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
